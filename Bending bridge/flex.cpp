@@ -17,7 +17,8 @@ std::cout<<"A-----------C-----------B"<< std::endl;
 
 
 float uy=(_f*_l*_l*_l)/(48*_e*_i);
-std::cout<<"The bending in the y axis is "<<uy<< std::endl;
+return uy;
+
 
 
 }
@@ -38,7 +39,7 @@ std::cout<<"A-----------C-----------B"<< std::endl;
 
 float uy=(5*_f*_l*_l*_l*_l)/(384*_e*_i);
 return uy;
-std::cout<<"The bending in the y axis is "<<uy<< std::endl;
+
 
 
 }
