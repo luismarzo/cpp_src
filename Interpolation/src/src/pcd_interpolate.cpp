@@ -10,7 +10,7 @@
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> simpleVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud);
 boost::shared_ptr<pcl::visualization::PCLVisualizer> rgbVis (pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud);
-double polinomical_interpolation();
+double polinomical_interpolation(double pp[][2],double xp, int n_points);
 
 int main (int argc, char** argv)
 {
@@ -24,28 +24,60 @@ int main (int argc, char** argv)
             << rgbcloud->width * rgbcloud->height
             << " data points from .pcd"
             << std::endl;
+            
+    //Data from uav to interpolate-----------------------------------------
+    
+    		int n_points;
+		double xp;
+		std::cout << "How many points are you going to introduce?:";
+		std::cin >> n_points;
+		double pp[n_points][2];
+
+		std::cout << "Give me the (x,z) points:\n";
+		for (int i = 0; i < n_points; i++)
+		{
+			std::cout << "x(" << i + 1 << "):";
+			std::cin >> pp[i][0];
+			std::cout << "z(" << i + 1 << "):";
+			std::cin >> pp[i][1];
+		}
+		
+		std::cout << "Give me the coordinate (x)\n";
+		std::cout << "x:";
+		std::cin >> xp;
+    		double z=polinomical_interpolation(pp,xp,n_points);
+    //---------------------------------------------------------------------        
   
     uint8_t r1(15), g1(15), b1(255);
-      pcl::PointXYZRGB point_1,point_2;
-      point_1.x = 0;
+      pcl::PointXYZRGB point_1,point_2,point_3,point_4;
+      point_1.x = pp[0][0];
       point_1.y = 0;
-      point_1.z = 2;
+      point_1.z = pp[0][1];
       
-      point_2.x = 1;
+      point_2.x = pp[1][0];;
       point_2.y = 0;
-      point_2.z = 4;
+      point_2.z = pp[1][1];
+      
+      point_3.x = pp[2][0];
+      point_3.y = 0;
+      point_3.z = pp[2][1];
+           
+      point_4.x = xp;
+      point_4.y = 0;
+      point_4.z = z;
+      
   
         uint32_t rgb_1 = (static_cast<uint32_t>(r1) << 16 |
               static_cast<uint32_t>(g1) << 8 | static_cast<uint32_t>(b1));
       point_1.rgb = *reinterpret_cast<float*>(&rgb_1);
       point_2.rgb = *reinterpret_cast<float*>(&rgb_1);
-      pcl::PointXYZ pt1 (1,0,2);
-      pcl::PointXYZ pt2 (1,0,3);
+      point_3.rgb = *reinterpret_cast<float*>(&rgb_1);
+      point_4.rgb = *reinterpret_cast<float*>(&rgb_1);
 
       rgbcloud->points.push_back (point_1);
       rgbcloud->points.push_back (point_2);
-  
-
+      rgbcloud->points.push_back (point_3);
+      rgbcloud->points.push_back (point_4);
 
 
 
@@ -79,41 +111,22 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> rgbVis (pcl::PointCloud<pcl
   return (viewer);
 }
 
-double polinomical_interpolation(){
-		int points;
-		double xp;
-		std::cout << "How many points are you going to introduce?:";
-		std::cin >> points;
-		double pp[points][2], aux[2][2];
-
-		std::cout << "Give me the (x,z) points:\n";
-		for (int i = 0; i < points; i++)
-		{
-			std::cout << "x(" << i + 1 << "):";
-			std::cin >> pp[i][0];
-			std::cout << "z(" << i + 1 << "):";
-			std::cin >> pp[i][1];
-		}
-		
-		std::cout << "Give me the coordinate (x)\n";
-		std::cout << "x:";
-		std::cin >> xp;
-		
-		
+double polinomical_interpolation(double pp[][2],double xp, int n_points){
+	
 	
 
 			int cont=1;	
 			double y=1;
-			Eigen::MatrixXd m(points, points);
-			Eigen::VectorXd k(points, 1);
-			for(int i=0;i<points;i++){
+			Eigen::MatrixXd m(n_points, n_points);
+			Eigen::VectorXd k(n_points, 1);
+			for(int i=0;i<n_points;i++){
 				m(i,0)=1;
 				k(i,0) = pp[i][1];
 				
 				}
 				
-			for(int i=1;i<points;i++){
-				for(int j=0;j<points;j++){
+			for(int i=1;i<n_points;i++){
+				for(int j=0;j<n_points;j++){
 				
 					for (int k = 0; k < cont; k++)
 					{
@@ -137,7 +150,7 @@ double polinomical_interpolation(){
 			y=1;
 
 			
-			for (int i = 0; i < points; i++)
+			for (int i = 0; i < n_points; i++)
 			{
 				if (i == 0)
 				{
