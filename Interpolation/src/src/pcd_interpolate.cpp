@@ -7,15 +7,22 @@
 #include <pcl/console/parse.h>
 #include <pcl/point_types.h>
 #include <Eigen/Dense>
+#include <math.h>
+
+#define PI 3.14159265
 
 boost::shared_ptr<pcl::visualization::PCLVisualizer> simpleVis (pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud);
 boost::shared_ptr<pcl::visualization::PCLVisualizer> rgbVis (pcl::PointCloud<pcl::PointXYZRGB>::ConstPtr cloud);
 double polinomical_interpolation(double pp[][2],double xp, int n_points);
 
+
 int main (int argc, char** argv)
 {
+
+
+
 	pcl::PointCloud<pcl::PointXYZRGB>::Ptr rgbcloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-	if (pcl::io::loadPCDFile<pcl::PointXYZRGB> ("/home/luis/cpp_src/Interpolation/src/maps/strimona_bridge_spam2.pcd", *rgbcloud) == -1)
+	if (pcl::io::loadPCDFile<pcl::PointXYZRGB> (argv[1], *rgbcloud) == -1)
   {
     PCL_ERROR ("Couldn't read file .pcd \n");
     return (-1);
@@ -27,8 +34,7 @@ int main (int argc, char** argv)
             
     //Data from uav to interpolate-----------------------------------------
     
-    		int n_points;
-		double xp;
+    		int n_points,new_points;
 		std::cout << "How many points are you going to introduce?:";
 		std::cin >> n_points;
 		double pp[n_points][2];
@@ -42,49 +48,80 @@ int main (int argc, char** argv)
 			std::cin >> pp[i][1];
 		}
 		
-		std::cout << "Give me the coordinate (x)\n";
-		std::cout << "x:";
-		std::cin >> xp;
-    		double z=polinomical_interpolation(pp,xp,n_points);
+		
+		std::cout << "How many NEW points do you want?:";
+		std::cin >> new_points;
+		double xp[new_points];
+		
+		std::cout << "Give me the coordinates (x)\n";
+		for (int i = 0; i < new_points; i++)
+		{
+			std::cout << "x(" << i + 1 << "):";
+			std::cin >> xp[i];
+
+		}
+		double xp_aux;
+		double z[new_points];
+		for (int i = 0; i < new_points; i++)
+		{
+		xp_aux=xp[i];
+    	        z[i]=polinomical_interpolation(pp,xp_aux,n_points);
+
+    	        }
     //---------------------------------------------------------------------        
   
     uint8_t r1(15), g1(15), b1(255);
-      pcl::PointXYZRGB point_1,point_2,point_3,point_4;
-      point_1.x = pp[0][0];
-      point_1.y = 0;
-      point_1.z = pp[0][1];
-      
-      point_2.x = pp[1][0];;
-      point_2.y = 0;
-      point_2.z = pp[1][1];
-      
-      point_3.x = pp[2][0];
-      point_3.y = 0;
-      point_3.z = pp[2][1];
-           
-      point_4.x = xp;
-      point_4.y = 0;
-      point_4.z = z;
-      
-  
+
+      pcl::PointXYZRGB point_1[n_points+new_points];
+      for(int i=0;i<n_points+new_points;i++)
+      {
+      if(i<n_points){
+      point_1[i].x = pp[i][0];
+      point_1[i].y = 0;
+      point_1[i].z = pp[i][1];
+      }
+      else{
+      point_1[i].x = xp[i-n_points];
+      point_1[i].y = 0;
+      point_1[i].z = z[i-n_points];
+      }
+
         uint32_t rgb_1 = (static_cast<uint32_t>(r1) << 16 |
               static_cast<uint32_t>(g1) << 8 | static_cast<uint32_t>(b1));
-      point_1.rgb = *reinterpret_cast<float*>(&rgb_1);
-      point_2.rgb = *reinterpret_cast<float*>(&rgb_1);
-      point_3.rgb = *reinterpret_cast<float*>(&rgb_1);
-      point_4.rgb = *reinterpret_cast<float*>(&rgb_1);
+      point_1[i].rgb = *reinterpret_cast<float*>(&rgb_1);
 
-      rgbcloud->points.push_back (point_1);
-      rgbcloud->points.push_back (point_2);
-      rgbcloud->points.push_back (point_3);
-      rgbcloud->points.push_back (point_4);
 
+      rgbcloud->points.push_back (point_1[i]);
+	
+	}
 
 
 
   boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
   viewer = rgbVis(rgbcloud);
-  viewer->addLine<pcl::PointXYZRGB> (point_1,point_2, "line4");
+  //ordenamos puntos para hacer las lineas
+  
+  
+  int n=n_points+new_points;
+  pcl::PointXYZRGB t;
+  for (int c = 0 ; c < ( n - 1 ); c++)
+  {
+    for (int d = 0 ; d < n - c - 1; d++)
+    {
+      if (point_1[d].x > point_1[d+1].x)
+      {
+        t         = point_1[d];
+        point_1[d]   = point_1[d+1];
+        point_1[d+1] = t;
+      }
+    }
+  }
+
+  for(int i=0;i<n_points+new_points-1;i++)
+  {
+  viewer->addLine<pcl::PointXYZRGB> (point_1[i],point_1[i+1], "line" + i);
+  }
+ 
   while (!viewer->wasStopped ())
   {
     viewer->spinOnce (100);
@@ -105,7 +142,7 @@ boost::shared_ptr<pcl::visualization::PCLVisualizer> rgbVis (pcl::PointCloud<pcl
   viewer->setBackgroundColor (0, 0, 0);
   pcl::visualization::PointCloudColorHandlerRGBField<pcl::PointXYZRGB> rgb(cloud);
   viewer->addPointCloud<pcl::PointXYZRGB> (cloud, rgb, "sample cloud");
-  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud");
+  viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 6, "sample cloud");
   viewer->addCoordinateSystem (1.0);
   viewer->initCameraParameters ();
   return (viewer);
@@ -173,3 +210,26 @@ double polinomical_interpolation(double pp[][2],double xp, int n_points){
 			return sol;
 	
 }
+
+/*pcl::PointXYZRGB bubble_sort(pcl::PointXYZRGB list[], int n)
+{
+  long c, d;
+  pcl::PointXYZRGB t;
+ 
+  for (c = 0 ; c < ( n - 1 ); c++)
+  {
+    for (d = 0 ; d < n - c - 1; d++)
+    {
+      if (list[d].x > list[d+1].x)
+      {
+        t         = list[d];
+        list[d]   = list[d+1];
+        list[d+1] = t;
+      }
+    }
+  }
+  for(int i=0;i<5;i++){
+  std::cout<<list[i].x<<std::endl;
+  }
+  return list[];
+}*/
