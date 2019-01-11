@@ -76,13 +76,13 @@ int main (int argc, char** argv)
       for(int i=0;i<n_points+new_points;i++)
       {
       if(i<n_points){
-      point_1[i].x = pp[i][0];
-      point_1[i].y = 0;
+      point_1[i].x = (cos(PI/4)*pp[i][0]);   //el coseno y seno sirve para cambiar los ejes de referencia.
+      point_1[i].y = (sin(PI/4)*pp[i][0]);
       point_1[i].z = pp[i][1];
       }
       else{
-      point_1[i].x = xp[i-n_points];
-      point_1[i].y = 0;
+      point_1[i].x = cos(PI/4)*xp[i-n_points];
+      point_1[i].y = sin(PI/4)*xp[i-n_points];
       point_1[i].z = z[i-n_points];
       }
 
